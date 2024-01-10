@@ -1,0 +1,7 @@
+pyaudio~=0.2.11
+openai~=1.2.3
+langchain~=0.0.334
+librosa~=0.10.1
+numpy~=1.24.4
+pillow
+python-dotenv
