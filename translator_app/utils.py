@@ -1,5 +1,7 @@
+from asyncio.log import logger
 import os
 import re
+import time
 import threading
 import wave
 import pyaudio
@@ -8,7 +10,24 @@ import numpy as np
 from typing import Union
 import logging
 
-from . import client, stream, frame_queue, transcription_queue, p, BUFFER_MAX_SIZE, RATE, CHUNK, regex_pattern
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+from . import (
+    client,
+    stream,
+    frame_queue,
+    transcription_queue,
+    printout_queue,
+    p,
+    BUFFER_MAX_SIZE,
+    RATE,
+    CHUNK,
+    regex_pattern,
+)
+
 
 def is_speech_present(audio_file: str, threshold: float = 0.02) -> bool:
     """
@@ -21,10 +40,13 @@ def is_speech_present(audio_file: str, threshold: float = 0.02) -> bool:
     Returns:
         bool: True if speech is present, False otherwise.
     """
+    logger.info("entering function")
+    time.sleep(5)
     y, sr = librosa.load(audio_file)
-
+    logger.info("read")
     abs_y = np.abs(y)
     max_sound_level = np.max(abs_y)
+    logger.info("level calculated")
     if max_sound_level > threshold:
         return True
     else:
@@ -32,7 +54,12 @@ def is_speech_present(audio_file: str, threshold: float = 0.02) -> bool:
         return False
 
 
-def translate(file_name: str, temperature: float = 0.0, response_format: str = 'text', **kwargs) -> Union[str, dict]:
+def translate(
+    file_name: str,
+    temperature: float = 0.0,
+    response_format: str = "text",
+    **kwargs,
+) -> Union[str, dict]:
     """
     Translate the audio file with a timeout control.
 
@@ -49,11 +76,14 @@ def translate(file_name: str, temperature: float = 0.0, response_format: str = '
     result = {"value": None}
 
     def worker():
-        with open(file_name, 'rb') as audio_data:
+        with open(file_name, "rb") as audio_data:
             result["value"] = client.audio.translations.create(
                 model="whisper-1",
-                file=audio_data, temperature=temperature,
-                response_format=response_format, **kwargs)
+                file=audio_data,
+                temperature=temperature,
+                response_format=response_format,
+                **kwargs,
+            )
 
     # Set up a thread to run the translation
     translation_thread = threading.Thread(target=worker)
@@ -66,7 +96,12 @@ def translate(file_name: str, temperature: float = 0.0, response_format: str = '
         return result["value"]
 
 
-def transcript(file_name: str, temperature: float = 0.0, response_format: str = 'text', **kwargs) -> Union[str, dict]:
+def transcript(
+    text="starting transcription",
+    temperature: float = 0.0,
+    response_format: str = "text",
+    **kwargs,
+) -> None:
     """
     Transcribe the audio file.
 
@@ -79,12 +114,30 @@ def transcript(file_name: str, temperature: float = 0.0, response_format: str = 
     Returns:
         Union[str, dict]: Transcription result.
     """
-    with open(file_name, 'rb') as audio_data:
-        return client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_data, temperature=temperature, response_format=response_format,
-            # language='pl',
-            **kwargs)
+    while True:
+        if not transcription_queue.empty():
+            logging.info("it went to if")
+            file_name = transcription_queue.get()
+            logging.info(f"filename {file_name}")
+            logging.info(f"transcription_starting for {file_name}")
+            with open(file_name, "rb") as audio_data:
+                response = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_data,
+                    temperature=temperature,
+                    response_format=response_format,
+                    # language='pl',
+                    **kwargs,
+                )
+            logging.info(type(response))
+            logging.info(f"Response: {response}")
+
+            printout_queue.put(response + text)
+            text = response
+            file_to_delete = _sort_and_remove_first("../audios")
+            if file_to_delete:
+                os.remove(file_to_delete)
+            logging.info(f"transcription of {file_name} finished!")
 
 
 def _generate_file_name(file_id: int) -> str:
@@ -97,7 +150,7 @@ def _generate_file_name(file_id: int) -> str:
     Returns:
         str: The generated file name.
     """
-    return f'audios/output_{file_id}.wav'
+    return f"audios/output_{file_id}.wav"
 
 
 def write_audio(file_id: int, text: str) -> None:
@@ -115,35 +168,22 @@ def write_audio(file_id: int, text: str) -> None:
                 frame = frame_queue.get()
                 frames.append(frame)
                 if len(frames) == BUFFER_MAX_SIZE:
-                    os.makedirs('../audios', exist_ok=True)
+                    os.makedirs("../audios", exist_ok=True)
                     file_name = _generate_file_name(file_id)
                     file_id += 1
-                    with wave.open(file_name, 'wb') as wf:
-                        wf.setnchannels(1)
-                        wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-                        wf.setframerate(RATE)
-                        wf.writeframes(b''.join(frames))
-                    if is_speech_present(file_name):
-                        response = translate(file_name)
-                        # response = transcript(file_name)
-                        logging.info(f'Response: {response}')
-
-                        if (re.search(regex_pattern, response, re.IGNORECASE) and len(response) < 15) or len(
-                                response) < 2:
-                            logging.info(f'Filter out')
-                            response = ''
-                    else:
-                        response = ''
-                    transcription_queue.put(response + text)
-                    text = response
-                    file_to_delete = _sort_and_remove_first('../audios')
-                    if file_to_delete:
-                        os.remove(file_to_delete)
+                    if file_id < 3:
+                        with wave.open(file_name, "wb") as wf:
+                            wf.setnchannels(1)
+                            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+                            wf.setframerate(RATE)
+                            wf.writeframes(b"".join(frames))
+                        logging.info(f"adding to queue {file_name}")
+                        transcription_queue.put(file_name)
                     frames = []
     except Exception as e:
         logging.error(f"Error in write_audio: {e}")
     finally:
-        if 'wf' in locals():
+        if "wf" in locals():
             wf.close()
 
 
@@ -151,14 +191,16 @@ def record_audio() -> None:
     """
     Record audio data and put it into the frame queue.
     """
-    try:
-        while True:
+    while True:
+        try:
             data = stream.read(CHUNK)
             frame_queue.put(data)
             if frame_queue.qsize() >= BUFFER_MAX_SIZE:
+                print("break condition met")
                 break
-    except Exception as e:
-        logging.error(f"Error in record_audio: {e}")
+        except Exception as e:
+            print("recording error")
+            logging.error(f"Error in record_audio: {e}")
 
 
 def _sort_and_remove_first(directory):
