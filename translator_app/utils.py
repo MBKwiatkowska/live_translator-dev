@@ -40,13 +40,10 @@ def is_speech_present(audio_file: str, threshold: float = 0.02) -> bool:
     Returns:
         bool: True if speech is present, False otherwise.
     """
-    logger.info("entering function")
-    time.sleep(5)
     y, sr = librosa.load(audio_file)
-    logger.info("read")
+    logging.info("program set up. You can start speaking")
     abs_y = np.abs(y)
     max_sound_level = np.max(abs_y)
-    logger.info("level calculated")
     if max_sound_level > threshold:
         return True
     else:
@@ -116,28 +113,25 @@ def transcript(
     """
     while True:
         if not transcription_queue.empty():
-            logging.info("it went to if")
             file_name = transcription_queue.get()
-            logging.info(f"filename {file_name}")
-            logging.info(f"transcription_starting for {file_name}")
-            with open(file_name, "rb") as audio_data:
-                response = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_data,
-                    temperature=temperature,
-                    response_format=response_format,
-                    # language='pl',
-                    **kwargs,
-                )
-            logging.info(type(response))
-            logging.info(f"Response: {response}")
+            if is_speech_present(file_name):
+                with open(file_name, "rb") as audio_data:
+                    response = client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_data,
+                        temperature=temperature,
+                        response_format=response_format,
+                        # language='pl',
+                        **kwargs,
+                    )
+                logging.info(f"Response: {response}")
 
-            printout_queue.put(response + text)
-            text = response
-            file_to_delete = _sort_and_remove_first("../audios")
-            if file_to_delete:
-                os.remove(file_to_delete)
-            logging.info(f"transcription of {file_name} finished!")
+                printout_queue.put(response + text)
+                text = response
+                file_to_delete = _sort_and_remove_first("../audios")
+                if file_to_delete:
+                    os.remove(file_to_delete)
+                logging.info(f"transcription of {file_name} finished!")
 
 
 def _generate_file_name(file_id: int) -> str:
@@ -171,14 +165,13 @@ def write_audio(file_id: int, text: str) -> None:
                     os.makedirs("../audios", exist_ok=True)
                     file_name = _generate_file_name(file_id)
                     file_id += 1
-                    if file_id < 3:
-                        with wave.open(file_name, "wb") as wf:
-                            wf.setnchannels(1)
-                            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-                            wf.setframerate(RATE)
-                            wf.writeframes(b"".join(frames))
-                        logging.info(f"adding to queue {file_name}")
-                        transcription_queue.put(file_name)
+                    with wave.open(file_name, "wb") as wf:
+                        wf.setnchannels(1)
+                        wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+                        wf.setframerate(RATE)
+                        wf.writeframes(b"".join(frames))
+                    logging.info(f"adding to queue {file_name}")
+                    transcription_queue.put(file_name)
                     frames = []
     except Exception as e:
         logging.error(f"Error in write_audio: {e}")
