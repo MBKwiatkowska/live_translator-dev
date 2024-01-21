@@ -41,6 +41,18 @@ logging.basicConfig(level=logging.INFO)
 ROOT_PATH = "audios"
 os.makedirs(ROOT_PATH, exist_ok=True)
 
+from transformers import WhisperProcessor, WhisperForConditionalGeneration
+from datasets import load_dataset
+
+processor = WhisperProcessor.from_pretrained("openai/whisper-tiny.en")
+model = WhisperForConditionalGeneration.from_pretrained(
+    "openai/whisper-tiny.en"
+)
+ds = load_dataset(
+    "hf-internal-testing/librispeech_asr_dummy", "clean", split="validation"
+)
+
+
 ASCII_IMG = """                                
                  @@@@@                            
                  @@ @@                            

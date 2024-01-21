@@ -9,6 +9,7 @@ import librosa
 import numpy as np
 from typing import Union
 import logging
+import soundfile as sf
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,11 +18,13 @@ logging.basicConfig(
 )
 from . import (
     client,
+    model,
     stream,
     frame_queue,
     transcription_queue,
     printout_queue,
     p,
+    processor,
     BUFFER_MAX_SIZE,
     RATE,
     CHUNK,
@@ -115,15 +118,25 @@ def transcript(
         if not transcription_queue.empty():
             file_name = transcription_queue.get()
             # if is_speech_present(file_name):
-            with open(file_name, "rb") as audio_data:
-                response = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_data,
-                    temperature=temperature,
-                    response_format=response_format,
-                    # language='pl',
-                    **kwargs,
-                )
+            ###### Openai API
+            # with open(file_name, "rb") as audio_data:
+            #     response = client.audio.transcriptions.create(
+            #         model="whisper-1",
+            #         file=audio_data,
+            #         temperature=temperature,
+            #         response_format=response_format,
+            #         # language='pl',
+            #         **kwargs,
+            #     )
+            ###### local whisper
+            audio, sampling_rate = sf.read(file_name)
+            input_features = processor(
+                audio, sampling_rate=sampling_rate, return_tensors="pt"
+            ).input_features
+            predicted_ids = model.generate(input_features)
+            response = processor.batch_decode(
+                predicted_ids, skip_special_tokens=True
+            )[0]
             logging.info("program set up. You can start speaking")
             logging.info(f"Response: {response}")
 
