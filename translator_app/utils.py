@@ -129,9 +129,9 @@ def transcript(
 
             printout_queue.put(response + text)
             text = response
-            file_to_delete = _sort_and_remove_first("../audios")
+            file_to_delete = _sort_and_remove_first("audios")
             if file_to_delete:
-                os.remove(file_to_delete)
+                os.remove("audios/" + file_to_delete)
             logging.info(f"transcription of {file_name} finished!")
 
 
