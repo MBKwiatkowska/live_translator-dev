@@ -114,24 +114,25 @@ def transcript(
     while True:
         if not transcription_queue.empty():
             file_name = transcription_queue.get()
-            if is_speech_present(file_name):
-                with open(file_name, "rb") as audio_data:
-                    response = client.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=audio_data,
-                        temperature=temperature,
-                        response_format=response_format,
-                        # language='pl',
-                        **kwargs,
-                    )
-                logging.info(f"Response: {response}")
+            # if is_speech_present(file_name):
+            with open(file_name, "rb") as audio_data:
+                response = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_data,
+                    temperature=temperature,
+                    response_format=response_format,
+                    # language='pl',
+                    **kwargs,
+                )
+            logging.info("program set up. You can start speaking")
+            logging.info(f"Response: {response}")
 
-                printout_queue.put(response + text)
-                text = response
-                file_to_delete = _sort_and_remove_first("../audios")
-                if file_to_delete:
-                    os.remove(file_to_delete)
-                logging.info(f"transcription of {file_name} finished!")
+            printout_queue.put(response + text)
+            text = response
+            file_to_delete = _sort_and_remove_first("../audios")
+            if file_to_delete:
+                os.remove(file_to_delete)
+            logging.info(f"transcription of {file_name} finished!")
 
 
 def _generate_file_name(file_id: int) -> str:
