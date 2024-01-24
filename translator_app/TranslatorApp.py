@@ -20,6 +20,9 @@ class TranscriptionApp:
         secondaryTextColor = "#dcdcdc"
         fontLargeBold = ("Arial", 18, "bold")
         fontMedium = ("Arial", 12)
+        self.text_for_previous_message = (
+            "Application is starting. Please, wait..."
+        )
 
         self.root.configure(bg=backgroundColor)
 
@@ -87,7 +90,7 @@ class TranscriptionApp:
             font=fontLargeBold,
             wraplength=center_frame.winfo_reqwidth(),
         )
-        self.current_var.set("")
+        self.current_var.set(self.text_for_previous_message)
         self.current_label.pack(
             pady=(50, 10),
             side="top",
@@ -126,15 +129,14 @@ class TranscriptionApp:
         """
         while True:
             if not printout_queue.empty():
-                transcription = printout_queue.get().split("\n")
-                logging.info(f"received transcription {transcription[0]}")
+                self.previous_var.set(self.text_for_previous_message)
+                transcription = printout_queue.get()
+                logging.info(f"received transcription {transcription}")
                 if len(transcription) > 0 and any(
                     string.strip() for string in transcription
                 ):
-                    self.current_var.set(transcription[0])
-                    if len(transcription) > 1:
-                        self.previous_var.set(transcription[1])
-
+                    self.current_var.set(transcription)
+                    self.text_for_previous_message = transcription
                 else:
                     self.current_var.set("...")
             time.sleep(1)

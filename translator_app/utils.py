@@ -19,13 +19,14 @@ from . import (
     client,
     stream,
     frame_queue,
-    transcription_queue,
-    printout_queue,
     p,
+    printout_queue,
+    transcription_queue,
+    translation_queue,
     BUFFER_MAX_SIZE,
     RATE,
     CHUNK,
-    regex_pattern,
+    TRANSLATION_SYSTEM_MESSAGE,
 )
 
 
@@ -51,50 +52,7 @@ def is_speech_present(audio_file: str, threshold: float = 0.02) -> bool:
         return False
 
 
-def translate(
-    file_name: str,
-    temperature: float = 0.0,
-    response_format: str = "text",
-    **kwargs,
-) -> Union[str, dict]:
-    """
-    Translate the audio file with a timeout control.
-
-    Args:
-        file_name (str): Path to the audio file.
-        temperature (float): Temperature for the translation model.
-        response_format (str): Format of the response.
-        **kwargs: Additional arguments for the translation model.
-
-    Returns:
-        Union[str, dict]: Translation result or empty string if timeout.
-    """
-
-    result = {"value": None}
-
-    def worker():
-        with open(file_name, "rb") as audio_data:
-            result["value"] = client.audio.translations.create(
-                model="whisper-1",
-                file=audio_data,
-                temperature=temperature,
-                response_format=response_format,
-                **kwargs,
-            )
-
-    # Set up a thread to run the translation
-    translation_thread = threading.Thread(target=worker)
-    translation_thread.start()
-    translation_thread.join(timeout=5)  # Timeout set to 5 seconds
-
-    if translation_thread.is_alive() or result["value"] is None:
-        return ""
-    else:
-        return result["value"]
-
-
 def transcript(
-    text="starting transcription",
     temperature: float = 0.0,
     response_format: str = "text",
     **kwargs,
@@ -124,15 +82,49 @@ def transcript(
                     # language='pl',
                     **kwargs,
                 )
-            logging.info("program set up. You can start speaking")
             logging.info(f"Response: {response}")
 
-            printout_queue.put(response + text)
-            text = response
-            file_to_delete = _sort_and_remove_first("audios")
-            if file_to_delete:
-                os.remove("audios/" + file_to_delete)
+            translation_queue.put(response)
+            os.remove(file_name)
             logging.info(f"transcription of {file_name} finished!")
+
+
+def translate(
+    temperature: float = 0.0001,
+    **kwargs,
+) -> Union[str, dict]:
+    """
+    Translate the audio file with a timeout control.
+
+    Args:
+        file_name (str): Path to the audio file.
+        temperature (float): Temperature for the translation model.
+        response_format (str): Format of the response.
+        **kwargs: Additional arguments for the translation model.
+
+    Returns:
+        Union[str, dict]: Translation result or empty string if timeout.
+    """
+    while True:
+        if not translation_queue.empty():
+            message_to_translate = translation_queue.get()
+            prepared_input = [
+                {"role": "system", "content": TRANSLATION_SYSTEM_MESSAGE},
+                {
+                    "role": "user",
+                    "content": message_to_translate,
+                },
+            ]
+
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=prepared_input,
+                temperature=temperature,
+                **kwargs,
+            )
+            translation = response.choices[0].message.content
+            printout_queue.put(translation)
+            logging.info(f"created_translation: {translation}")
 
 
 def _generate_file_name(file_id: int) -> str:
@@ -148,7 +140,7 @@ def _generate_file_name(file_id: int) -> str:
     return f"audios/output_{file_id}.wav"
 
 
-def write_audio(file_id: int, text: str) -> None:
+def write_audio(file_id: int = 0) -> None:
     """
     Write audio data to a file and translate it.
 
@@ -195,18 +187,3 @@ def record_audio() -> None:
         except Exception as e:
             print("recording error")
             logging.error(f"Error in record_audio: {e}")
-
-
-def _sort_and_remove_first(directory):
-    """
-    Sorts a list of file names alphabetically and removes the first file in the sorted list.
-
-    :param files: A list of file names (strings).
-    :return: The sorted list of files with the first file removed.
-    """
-    # Sort the files alphabetically
-    sorted_files = sorted(os.listdir(directory))
-
-    # Remove the first file from the list if the list is not empty
-    if len(sorted_files) > 1:
-        return sorted_files[0]
