@@ -11,6 +11,13 @@
 pip install -r requirements.txt
 4. Podmien klucz openai w env 
 5. Uruchom skrypt main.py
+
+.env variables to be used:
+1. INPUT_DEVICE_INDEX - index of the microphone you want to use. By default 1
+2. AUDIO_MODEL - model you want to use. By default openai.
+   You can also use openai/whisper-tiny.en that will run whisper locally.
+
+
 python main.py
 bazuje o pliki z folderu  translator_app -  whisper do transkrypcji + translacji 
  (lub ) 

@@ -9,6 +9,23 @@ import openai
 load_dotenv()
 client = openai.Client()
 
+INPUT_DEVICE_INDEX = int(os.getenv("INPUT_DEVICE_INDEX", default="1"))
+AUDIO_MODEL = os.getenv("AUDIO_MODEL", default="openai")
+
+model = None
+processor = None
+if AUDIO_MODEL != "openai":
+    from transformers import WhisperProcessor, WhisperForConditionalGeneration
+    from datasets import load_dataset
+
+    processor = WhisperProcessor.from_pretrained(AUDIO_MODEL)
+    model = WhisperForConditionalGeneration.from_pretrained(AUDIO_MODEL)
+    ds = load_dataset(
+        "hf-internal-testing/librispeech_asr_dummy",
+        "clean",
+        split="validation",
+    )
+
 frame_queue = queue.Queue()
 transcription_queue = queue.Queue()
 translation_queue = queue.Queue()
@@ -48,7 +65,7 @@ stream = p.open(
     rate=RATE,
     input=True,
     frames_per_buffer=CHUNK,
-    input_device_index=3,
+    input_device_index=INPUT_DEVICE_INDEX,
 )
 
 # Initialize logging

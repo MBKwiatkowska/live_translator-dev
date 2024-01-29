@@ -1,6 +1,7 @@
 from asyncio.log import logger
 import os
 import re
+import soundfile as sf
 import time
 import threading
 import wave
@@ -17,17 +18,26 @@ logging.basicConfig(
 )
 from . import (
     client,
+    model,
     stream,
     frame_queue,
     p,
     printout_queue,
+    processor,
     transcription_queue,
     translation_queue,
     BUFFER_MAX_SIZE,
     RATE,
     CHUNK,
     TRANSLATION_SYSTEM_MESSAGE,
+    AUDIO_MODEL,
 )
+
+
+def cleanup_audios():
+    files = os.listdir("audios")
+    for file in files:
+        os.remove(file)
 
 
 def is_speech_present(audio_file: str, threshold: float = 0.02) -> bool:
@@ -73,20 +83,50 @@ def transcript(
         if not transcription_queue.empty():
             file_name = transcription_queue.get()
             # if is_speech_present(file_name):
-            with open(file_name, "rb") as audio_data:
-                response = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_data,
+            if AUDIO_MODEL == "openai":
+                response = transcript_with_openai(
+                    file_name=file_name,
                     temperature=temperature,
                     response_format=response_format,
-                    # language='pl',
-                    **kwargs,
                 )
+            else:
+                response = transcript_with_local_model(file_name=file_name)
+
             logging.info(f"Response: {response}")
 
             translation_queue.put(response)
             os.remove(file_name)
             logging.info(f"transcription of {file_name} finished!")
+
+
+def transcript_with_openai(
+    file_name: str,
+    temperature: float,
+    response_format: str,
+    **kwargs,
+):
+    with open(file_name, "rb") as audio_data:
+        response = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_data,
+            temperature=temperature,
+            response_format=response_format,
+            # language='pl',
+            **kwargs,
+        )
+    return response
+
+
+def transcript_with_local_model(file_name: str):
+    audio, sampling_rate = sf.read(file_name)
+    input_features = processor(
+        audio, sampling_rate=sampling_rate, return_tensors="pt"
+    ).input_features
+    predicted_ids = model.generate(input_features)
+    response = processor.batch_decode(predicted_ids, skip_special_tokens=True)[
+        0
+    ]
+    return response
 
 
 def translate(
