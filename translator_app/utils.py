@@ -92,11 +92,21 @@ def transcript(
             else:
                 response = transcript_with_local_model(file_name=file_name)
 
-            logging.info(f"Response: {response}")
-
-            translation_queue.put(response)
-            os.remove(file_name)
-            logging.info(f"transcription of {file_name} finished!")
+            if file_name == "audios/output_0.wav":
+                os.remove(file_name)
+                while transcription_queue.qsize() > 1:
+                    temp_file = transcription_queue.get()
+                    os.remove(temp_file)
+                    logger.info(f"removing {temp_file} - too long in a queue")
+            else:
+                while transcription_queue.qsize() > 4:
+                    temp_file = transcription_queue.get()
+                    os.remove(temp_file)
+                    logger.info(f"removing {temp_file} - too long in a queue")
+                logging.info(f"Response: {response}")
+                translation_queue.put(response)
+                os.remove(file_name)
+                logging.info(f"transcription of {file_name} finished!")
 
 
 def transcript_with_openai(

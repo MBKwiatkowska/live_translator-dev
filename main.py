@@ -9,6 +9,7 @@ import tkinter as tk
 from translator_app import stream, p
 from translator_app.TranslatorApp import TranscriptionApp
 from translator_app.utils import (
+    cleanup_audios,
     write_audio,
     record_audio,
     transcript,
@@ -72,6 +73,7 @@ if __name__ == "__main__":
     stream.stop_stream()
     logging.info("closing stream")
     stream.close()
+    cleanup_audios()
     logging.info("terminating app")
 
     p.terminate()
