@@ -14,9 +14,10 @@ pip install -r requirements.txt
 
 .env variables to be used:
 1. INPUT_DEVICE_INDEX - index of the microphone you want to use. By default 1
-2. AUDIO_MODEL - model you want to use. By default openai.
-   You can also use openai/whisper-tiny.en that will run whisper locally.
-
+2. AUDIO_MODEL - model you want to use. 
+   - openai - API whisper from openai - by default
+   - openai/whisper-tiny.en - openai whisper from hugging_face
+   - faster-whisper - small model from faster-whisper library
 
 python main.py
 bazuje o pliki z folderu  translator_app -  whisper do transkrypcji + translacji 

@@ -17,6 +17,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 from . import (
+    AUDIO_MODEL,
     client,
     model,
     stream,
@@ -30,7 +31,6 @@ from . import (
     RATE,
     CHUNK,
     TRANSLATION_SYSTEM_MESSAGE,
-    AUDIO_MODEL,
 )
 
 
@@ -89,8 +89,12 @@ def transcript(
                     temperature=temperature,
                     response_format=response_format,
                 )
+            elif AUDIO_MODEL == "faster-whisper":
+                response = transcript_with_faster_whisper(file_name=file_name)
             else:
-                response = transcript_with_local_model(file_name=file_name)
+                response = transcript_with_hugging_face_whisper(
+                    file_name=file_name
+                )
 
             if file_name == "audios/output_0.wav":
                 os.remove(file_name)
@@ -104,7 +108,8 @@ def transcript(
                     os.remove(temp_file)
                     logger.info(f"removing {temp_file} - too long in a queue")
                 logging.info(f"Response: {response}")
-                translation_queue.put(response)
+                if len(response) > 0:
+                    translation_queue.put(response)
                 os.remove(file_name)
                 logging.info(f"transcription of {file_name} finished!")
 
@@ -127,7 +132,17 @@ def transcript_with_openai(
     return response
 
 
-def transcript_with_local_model(file_name: str):
+def transcript_with_faster_whisper(file_name: str):
+    result: str = ""
+    segments, _ = model.transcribe(file_name)
+    segments = list(segments)
+    for segment in segments:
+        if segment.no_speech_prob < 0.6:
+            result = result + segment.text
+    return result
+
+
+def transcript_with_hugging_face_whisper(file_name: str):
     audio, sampling_rate = sf.read(file_name)
     input_features = processor(
         audio, sampling_rate=sampling_rate, return_tensors="pt"

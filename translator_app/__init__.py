@@ -14,7 +14,14 @@ AUDIO_MODEL = os.getenv("AUDIO_MODEL", default="openai")
 
 model = None
 processor = None
-if AUDIO_MODEL != "openai":
+if AUDIO_MODEL == "openai":
+    None
+elif AUDIO_MODEL == "faster-whisper":
+    from faster_whisper import WhisperModel
+
+    model_size = "small"
+    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+else:
     from transformers import WhisperProcessor, WhisperForConditionalGeneration
     from datasets import load_dataset
 
