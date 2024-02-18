@@ -73,7 +73,6 @@ if __name__ == "__main__":
     stream.stop_stream()
     logging.info("closing stream")
     stream.close()
-    cleanup_audios()
     logging.info("terminating app")
-
     p.terminate()
+    cleanup_audios()

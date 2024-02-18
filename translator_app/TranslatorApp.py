@@ -5,6 +5,7 @@ import time
 import tkinter as tk
 from PIL import Image, ImageTk
 
+import translator_app.globals as globals
 
 from . import printout_queue
 
@@ -112,7 +113,7 @@ class TranscriptionApp:
         left_frame.pack(side="left", fill="y")
         center_frame.pack(side="left", fill="both", expand=True)
         right_frame.pack(side="left", fill="y")
-
+        root.protocol("WM_DELETE_WINDOW", self._on_closing)
         left_frame.pack_propagate(False)
         center_frame.pack_propagate(False)
         right_frame.pack_propagate(False)
@@ -128,18 +129,21 @@ class TranscriptionApp:
         Update the text in the transcription app.
         """
         while True:
-            if not printout_queue.empty():
-                self.previous_var.set(self.text_for_previous_message)
-                transcription = printout_queue.get()
-                logging.info(f"received transcription {transcription}")
-                if len(transcription) > 0 and any(
-                    string.strip() for string in transcription
-                ):
-                    self.current_var.set(transcription)
-                    self.text_for_previous_message = transcription
-                else:
-                    self.current_var.set("...")
-            time.sleep(1)
+            if globals.run_threads:
+                if not printout_queue.empty():
+                    self.previous_var.set(self.text_for_previous_message)
+                    transcription = printout_queue.get()
+                    logging.info(f"received transcription {transcription}")
+                    if len(transcription) > 0 and any(
+                        string.strip() for string in transcription
+                    ):
+                        self.current_var.set(transcription)
+                        self.text_for_previous_message = transcription
+                    else:
+                        self.current_var.set("...")
+                time.sleep(1)
+            else:
+                break
 
     def _on_resize(self, event):
         # Rescale the logo image
@@ -161,3 +165,11 @@ class TranscriptionApp:
             (width, height), Image.Resampling.LANCZOS
         )
         return ImageTk.PhotoImage(resized_image)
+
+    def _on_closing(self):
+        logging.info("triggered on closing function")
+        globals.run_threads = (
+            False  # Set the flag to False to stop the threads
+        )
+        logging.info(f"run_threads_on_close = {globals.run_threads}")
+        self.root.destroy()

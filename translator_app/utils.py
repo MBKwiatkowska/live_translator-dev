@@ -1,4 +1,5 @@
 from asyncio.log import logger
+from cProfile import run
 import os
 import re
 import soundfile as sf
@@ -16,6 +17,9 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+
+import translator_app.globals as globals
+
 from . import (
     AUDIO_MODEL,
     client,
@@ -37,7 +41,10 @@ from . import (
 def cleanup_audios():
     files = os.listdir("audios")
     for file in files:
-        os.remove(file)
+        try:
+            os.remove(f"audios/{file}")
+        except:
+            logger.info(f"failed to clean up {file}")
 
 
 def is_speech_present(audio_file: str, threshold: float = 0.02) -> bool:
@@ -80,38 +87,47 @@ def transcript(
         Union[str, dict]: Transcription result.
     """
     while True:
-        if not transcription_queue.empty():
-            file_name = transcription_queue.get()
-            # if is_speech_present(file_name):
-            if AUDIO_MODEL == "openai":
-                response = transcript_with_openai(
-                    file_name=file_name,
-                    temperature=temperature,
-                    response_format=response_format,
-                )
-            elif AUDIO_MODEL == "faster-whisper":
-                response = transcript_with_faster_whisper(file_name=file_name)
-            else:
-                response = transcript_with_hugging_face_whisper(
-                    file_name=file_name
-                )
+        if globals.run_threads:
+            if not transcription_queue.empty():
+                file_name = transcription_queue.get()
+                # if is_speech_present(file_name):
+                if AUDIO_MODEL == "openai":
+                    response = transcript_with_openai(
+                        file_name=file_name,
+                        temperature=temperature,
+                        response_format=response_format,
+                    )
+                elif AUDIO_MODEL == "faster-whisper":
+                    response = transcript_with_faster_whisper(
+                        file_name=file_name
+                    )
+                else:
+                    response = transcript_with_hugging_face_whisper(
+                        file_name=file_name
+                    )
 
-            if file_name == "audios/output_0.wav":
-                os.remove(file_name)
-                while transcription_queue.qsize() > 1:
-                    temp_file = transcription_queue.get()
-                    os.remove(temp_file)
-                    logger.info(f"removing {temp_file} - too long in a queue")
-            else:
-                while transcription_queue.qsize() > 4:
-                    temp_file = transcription_queue.get()
-                    os.remove(temp_file)
-                    logger.info(f"removing {temp_file} - too long in a queue")
-                logging.info(f"Response: {response}")
-                if len(response) > 0:
-                    translation_queue.put(response)
-                os.remove(file_name)
-                logging.info(f"transcription of {file_name} finished!")
+                if file_name == "audios/output_0.wav":
+                    os.remove(file_name)
+                    while transcription_queue.qsize() > 1:
+                        temp_file = transcription_queue.get()
+                        os.remove(temp_file)
+                        logger.info(
+                            f"removing {temp_file} - too long in a queue"
+                        )
+                else:
+                    while transcription_queue.qsize() > 4:
+                        temp_file = transcription_queue.get()
+                        os.remove(temp_file)
+                        logger.info(
+                            f"removing {temp_file} - too long in a queue"
+                        )
+                    logging.info(f"Response: {response}")
+                    if len(response) > 0:
+                        translation_queue.put(response)
+                    os.remove(file_name)
+                    logging.info(f"transcription of {file_name} finished!")
+        else:
+            break
 
 
 def transcript_with_openai(
@@ -216,21 +232,25 @@ def write_audio(file_id: int = 0) -> None:
     frames = []
     try:
         while True:
-            if not frame_queue.empty():
-                frame = frame_queue.get()
-                frames.append(frame)
-                if len(frames) == BUFFER_MAX_SIZE:
-                    os.makedirs("../audios", exist_ok=True)
-                    file_name = _generate_file_name(file_id)
-                    file_id += 1
-                    with wave.open(file_name, "wb") as wf:
-                        wf.setnchannels(1)
-                        wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-                        wf.setframerate(RATE)
-                        wf.writeframes(b"".join(frames))
-                    logging.info(f"adding to queue {file_name}")
-                    transcription_queue.put(file_name)
-                    frames = []
+            if globals.run_threads:
+                if not frame_queue.empty():
+                    frame = frame_queue.get()
+                    frames.append(frame)
+                    if len(frames) == BUFFER_MAX_SIZE:
+                        os.makedirs("../audios", exist_ok=True)
+                        file_name = _generate_file_name(file_id)
+                        file_id += 1
+                        with wave.open(file_name, "wb") as wf:
+                            wf.setnchannels(1)
+                            wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+                            wf.setframerate(RATE)
+                            wf.writeframes(b"".join(frames))
+                        logging.info(f"adding to queue {file_name}")
+                        transcription_queue.put(file_name)
+                        frames = []
+
+            else:
+                break
     except Exception as e:
         logging.error(f"Error in write_audio: {e}")
     finally:
@@ -243,12 +263,15 @@ def record_audio() -> None:
     Record audio data and put it into the frame queue.
     """
     while True:
-        try:
-            data = stream.read(CHUNK)
-            frame_queue.put(data)
-            if frame_queue.qsize() >= BUFFER_MAX_SIZE:
-                print("break condition met")
-                break
-        except Exception as e:
-            print("recording error")
-            logging.error(f"Error in record_audio: {e}")
+        if globals.run_threads:
+            try:
+                data = stream.read(CHUNK)
+                frame_queue.put(data)
+                if frame_queue.qsize() >= BUFFER_MAX_SIZE:
+                    print("break condition met")
+                    break
+            except Exception as e:
+                print("recording error")
+                logging.error(f"Error in record_audio: {e}")
+        else:
+            break
