@@ -1,7 +1,9 @@
 from asyncio.log import logger
 from cProfile import run
+import io
 import os
 import re
+import requests
 import soundfile as sf
 import time
 import threading
@@ -35,6 +37,8 @@ from . import (
     RATE,
     CHUNK,
     TRANSLATION_SYSTEM_MESSAGE,
+    SCALEPOINT_BEARER,
+    SCALEPOINT_ENDPOINT,
 )
 
 
@@ -97,6 +101,10 @@ def transcript(
                         temperature=temperature,
                         response_format=response_format,
                     )
+                elif AUDIO_MODEL == "scalepoint":
+                    response = transcript_with_scalepoint(
+                        file_name=file_name,
+                    )
                 elif AUDIO_MODEL == "faster-whisper":
                     response = transcript_with_faster_whisper(
                         file_name=file_name
@@ -146,6 +154,26 @@ def transcript_with_openai(
             **kwargs,
         )
     return response
+
+
+def transcript_with_scalepoint(
+    file_name: str,
+):
+
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {SCALEPOINT_BEARER}",
+    }
+    with open(file_name, "rb") as f:
+        wav_content = f.read()
+        wav_io = io.BytesIO(wav_content)
+        files = {"file": ("audio.wav", wav_io, "audio/wav")}
+    response = requests.post(
+        f"{SCALEPOINT_ENDPOINT}/transcriptions/?response_format=text",
+        headers=headers,
+        files=files,
+    )
+    return response.json()["text"]
 
 
 def transcript_with_faster_whisper(file_name: str):
