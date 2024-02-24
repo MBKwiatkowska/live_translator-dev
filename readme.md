@@ -16,6 +16,7 @@ pip install -r requirements.txt
 1. INPUT_DEVICE_INDEX - index of the microphone you want to use. By default 1
 2. AUDIO_MODEL - model you want to use. 
    - openai - API whisper from openai - by default
+   - scalepoint - use API from scalepoint
    - openai/whisper-tiny.en - openai whisper from hugging_face
    - faster-whisper - small model from faster-whisper library
 

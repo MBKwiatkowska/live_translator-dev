@@ -11,10 +11,11 @@ client = openai.Client()
 
 INPUT_DEVICE_INDEX = int(os.getenv("INPUT_DEVICE_INDEX", default="1"))
 AUDIO_MODEL = os.getenv("AUDIO_MODEL", default="openai")
-
+SCALEPOINT_BEARER = os.getenv("SCALEPOINT_BEARER")
+SCALEPOINT_ENDPOINT = os.getenv("SCALEPOINT_ENDPOINT")
 model = None
 processor = None
-if AUDIO_MODEL == "openai":
+if AUDIO_MODEL in ["openai", "scalepoint"]:
     None
 elif AUDIO_MODEL == "faster-whisper":
     from faster_whisper import WhisperModel
