@@ -2,3 +2,15 @@
 .env
 test_audio.ipynb
 scalepoint_test.ipynb
+
+
+*.wav
+
+# .gitignore
+
+# Ignore the virtual environment directory
+venv/
+env/
+
+# Ignore the logs directory
+logs/
