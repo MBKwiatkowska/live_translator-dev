@@ -22,7 +22,7 @@ logging.basicConfig(
 
 import translator_app.globals as globals
 
-from . import (
+from translator_app.__init__ import (
     AUDIO_MODEL,
     client,
     model,
