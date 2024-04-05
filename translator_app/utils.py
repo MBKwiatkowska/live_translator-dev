@@ -105,6 +105,10 @@ def transcript(
                     response = transcript_with_scalepoint(
                         file_name=file_name,
                     )
+                elif AUDIO_MODEL == "scalepoint_translation":
+                    response = translate_with_scalepoint(
+                        file_name=file_name,
+                    )
                 elif AUDIO_MODEL == "faster-whisper":
                     response = transcript_with_faster_whisper(
                         file_name=file_name
@@ -131,7 +135,10 @@ def transcript(
                         )
                     logging.info(f"Response: {response}")
                     if len(response) > 0:
-                        translation_queue.put(response)
+                        if AUDIO_MODEL == "scalepoint_translation":
+                            printout_queue.put(response)
+                        else:
+                            translation_queue.put(response)
                     os.remove(file_name)
                     logging.info(f"transcription of {file_name} finished!")
         else:
@@ -234,6 +241,26 @@ def translate(
             translation = response.choices[0].message.content
             printout_queue.put(translation)
             logging.info(f"created_translation: {translation}")
+
+
+def translate_with_scalepoint(
+    file_name: str,
+):
+
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {SCALEPOINT_BEARER}",
+    }
+    with open(file_name, "rb") as f:
+        wav_content = f.read()
+        wav_io = io.BytesIO(wav_content)
+        files = {"file": ("audio.wav", wav_io, "audio/wav")}
+    response = requests.post(
+        f"{SCALEPOINT_ENDPOINT}/translations/?response_format=text&language=polish",
+        headers=headers,
+        files=files,
+    )
+    return response.json()["text"]
 
 
 def _generate_file_name(file_id: int) -> str:

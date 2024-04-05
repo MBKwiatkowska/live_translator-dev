@@ -17,6 +17,7 @@ pip install -r requirements.txt
 2. AUDIO_MODEL - model you want to use. 
    - openai - API whisper from openai - by default
    - scalepoint - use API from scalepoint
+   - scalepoint_translation - use API from scalepoint with translation mode
    - openai/whisper-tiny.en - openai whisper from hugging_face
    - faster-whisper - small model from faster-whisper library
 
