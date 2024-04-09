@@ -15,7 +15,7 @@ SCALEPOINT_BEARER = os.getenv("SCALEPOINT_BEARER")
 SCALEPOINT_ENDPOINT = os.getenv("SCALEPOINT_ENDPOINT")
 model = None
 processor = None
-if AUDIO_MODEL in ["openai", "scalepoint"]:
+if AUDIO_MODEL in ["openai", "scalepoint", "scalepoint_translation"]:
     None
 elif AUDIO_MODEL == "faster-whisper":
     from faster_whisper import WhisperModel
