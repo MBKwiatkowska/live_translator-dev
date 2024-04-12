@@ -22,24 +22,7 @@ logging.basicConfig(
 
 import translator_app.globals as globals
 
-from translator_app.__init__ import (
-    AUDIO_MODEL,
-    client,
-    model,
-    stream,
-    frame_queue,
-    p,
-    printout_queue,
-    processor,
-    transcription_queue,
-    translation_queue,
-    BUFFER_MAX_SIZE,
-    RATE,
-    CHUNK,
-    TRANSLATION_SYSTEM_MESSAGE,
-    SCALEPOINT_BEARER,
-    SCALEPOINT_ENDPOINT,
-)
+from translator_app.__init__ import *
 
 
 def cleanup_audios():

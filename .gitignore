@@ -4,13 +4,14 @@ test_audio.ipynb
 scalepoint_test.ipynb
 
 
-*.wav
-
 # .gitignore
-
+*.wav
+*.m4a
+*.pyc
 # Ignore the virtual environment directory
 venv/
 env/
 
 # Ignore the logs directory
 logs/
+*.json

@@ -20,6 +20,7 @@ pip install -r requirements.txt
    - scalepoint_translation - use API from scalepoint with translation mode
    - openai/whisper-tiny.en - openai whisper from hugging_face
    - faster-whisper - small model from faster-whisper library
+   - google-cloud-speech - speech recognition model from google
 
 python main.py
 bazuje o pliki z folderu  translator_app -  whisper do transkrypcji + translacji 
