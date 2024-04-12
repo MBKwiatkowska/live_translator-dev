@@ -14,24 +14,32 @@ AUDIO_MODEL = os.getenv("AUDIO_MODEL", default="openai")
 SCALEPOINT_BEARER = os.getenv("SCALEPOINT_BEARER")
 SCALEPOINT_ENDPOINT = os.getenv("SCALEPOINT_ENDPOINT")
 google_speech_client = None
+google_speech_config = None
+google_speech_project_id = None
 model = None
 processor = None
 if AUDIO_MODEL in ["openai", "scalepoint", "scalepoint_translation"]:
     None
 elif AUDIO_MODEL == "google-cloud-speech":
     import json
-    from google.oauth2 import service_account
+
     from google.cloud.speech_v2 import SpeechClient
     from google.cloud.speech_v2.types import cloud_speech
+    from google.oauth2 import service_account
 
-    auth_file = "google_dervice_account_auth.json"
+    auth_file = "google_service_account_auth.json"
     print(os.getcwd())
     credentials = service_account.Credentials.from_service_account_file(
         auth_file
     )
     with open(auth_file) as file:
-        project_id = json.load(file)["project_id"]
+        google_speech_project_id = json.load(file)["project_id"]
     google_speech_client = SpeechClient(credentials=credentials)
+    google_speech_config = cloud_speech.RecognitionConfig(
+        auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
+        language_codes=["pl-PL"],
+        model="short",
+    )
 elif AUDIO_MODEL == "faster-whisper":
     from faster_whisper import WhisperModel
 
