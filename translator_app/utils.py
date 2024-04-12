@@ -96,6 +96,10 @@ def transcript(
                     response = transcript_with_faster_whisper(
                         file_name=file_name
                     )
+                elif AUDIO_MODEL == "google-cloud-speech":
+                    response = transcript_with_google_cloud_speech(
+                        file_name=file_name
+                    )
                 else:
                     response = transcript_with_hugging_face_whisper(
                         file_name=file_name
@@ -126,6 +130,26 @@ def transcript(
                     logging.info(f"transcription of {file_name} finished!")
         else:
             break
+
+
+def transcript_with_google_cloud_speech(
+    file_name: str,
+    **kwargs,
+):
+    with open(file_name, "rb") as f:
+        content = f.read()
+    request = cloud_speech.RecognizeRequest(
+        recognizer=f"projects/{google_speech_project_id}/locations/global/recognizers/_",
+        config=google_speech_config,
+        content=content,
+    )
+    response = google_speech_client.recognize(request=request)
+    logging.info(response)
+    try:
+        result = response.results[0].alternatives[0].transcript
+    except:
+        result = ""
+    return result
 
 
 def transcript_with_openai(
@@ -215,7 +239,7 @@ def translate(
                 },
             ]
 
-################## translate with openai
+            ################## translate with openai
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=prepared_input,
