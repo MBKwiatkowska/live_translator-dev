@@ -144,7 +144,6 @@ def transcript_with_google_cloud_speech(
         content=content,
     )
     response = google_speech_client.recognize(request=request)
-    logging.info(response)
     try:
         result = response.results[0].alternatives[0].transcript
     except:
