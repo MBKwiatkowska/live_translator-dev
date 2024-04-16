@@ -8,6 +8,7 @@ scalepoint_test.ipynb
 *.wav
 *.m4a
 *.pyc
+*.log
 # Ignore the virtual environment directory
 venv/
 env/

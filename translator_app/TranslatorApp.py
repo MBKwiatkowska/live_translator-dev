@@ -1,4 +1,3 @@
-import logging
 import os
 import threading
 import time
@@ -7,7 +6,7 @@ from PIL import Image, ImageTk
 
 import translator_app.globals as globals
 
-from . import printout_queue
+from translator_app.__init__ import printout_queue, logging
 
 
 class TranscriptionApp:
@@ -118,11 +117,15 @@ class TranscriptionApp:
         center_frame.pack_propagate(False)
         right_frame.pack_propagate(False)
         print("add_update_text_to_threading")
+        #        logging.info("starting thread update")
         self.update_thread = threading.Thread(target=self.update_text)
         print("set update thread daemon to true")
+        #        logging.info("set update_thread daemon to true")
         self.update_thread.daemon = True
         print("start thread")
         self.update_thread.start()
+
+    #        logging.info("started update thread")
 
     def update_text(self) -> None:
         """
@@ -133,12 +136,13 @@ class TranscriptionApp:
                 if not printout_queue.empty():
                     self.previous_var.set(self.text_for_previous_message)
                     transcription = printout_queue.get()
-                    logging.info(f"received transcription {transcription}")
+                    #                    logging.info(f"received transcription {transcription}")
                     if len(transcription) > 0 and any(
                         string.strip() for string in transcription
                     ):
                         self.current_var.set(transcription)
                         self.text_for_previous_message = transcription
+                    #                        logging.info(f"printed transcription {transcription}")
                     else:
                         self.current_var.set("...")
                 time.sleep(1)

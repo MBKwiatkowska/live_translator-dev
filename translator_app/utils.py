@@ -1,24 +1,14 @@
-from asyncio.log import logger
-from cProfile import run
 import io
 import os
-import re
 import requests
 import soundfile as sf
-import time
-import threading
 import wave
 import pyaudio
 import librosa
 import numpy as np
-from typing import Union
 import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+from typing import Union
 
 import translator_app.globals as globals
 
@@ -31,7 +21,7 @@ def cleanup_audios():
         try:
             os.remove(f"audios/{file}")
         except:
-            logger.info(f"failed to clean up {file}")
+            logging.info(f"failed to clean up {file}")
 
 
 def is_speech_present(audio_file: str, threshold: float = 0.02) -> bool:
@@ -110,24 +100,23 @@ def transcript(
                     while transcription_queue.qsize() > 1:
                         temp_file = transcription_queue.get()
                         os.remove(temp_file)
-                        logger.info(
+                        logging.info(
                             f"removing {temp_file} - too long in a queue"
                         )
                 else:
                     while transcription_queue.qsize() > 4:
                         temp_file = transcription_queue.get()
                         os.remove(temp_file)
-                        logger.info(
+                        logging.info(
                             f"removing {temp_file} - too long in a queue"
                         )
-                    logging.info(f"Response: {response}")
                     if len(response) > 0:
+                        logging.info(f"transcription: {response}")
                         if AUDIO_MODEL == "scalepoint_translation":
                             printout_queue.put(response)
                         else:
                             translation_queue.put(response)
                     os.remove(file_name)
-                    logging.info(f"transcription of {file_name} finished!")
         else:
             break
 
@@ -246,8 +235,8 @@ def translate(
                 **kwargs,
             )
             translation = response.choices[0].message.content
+            logging.info(f"translation: {translation}")
             printout_queue.put(translation)
-            logging.info(f"created_translation: {translation}")
 
 
 def translate_with_scalepoint(
@@ -267,7 +256,9 @@ def translate_with_scalepoint(
         headers=headers,
         files=files,
     )
-    return response.json()["text"]
+    result = response.json()["text"]
+    logging.info(f"translation: {result}")
+    return result
 
 
 def _generate_file_name(file_id: int) -> str:
@@ -307,7 +298,7 @@ def write_audio(file_id: int = 0) -> None:
                             wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
                             wf.setframerate(RATE)
                             wf.writeframes(b"".join(frames))
-                        logging.info(f"adding to queue {file_name}")
+                        #                        logging.info(f"adding to queue {file_name}")
                         transcription_queue.put(file_name)
                         frames = []
 
