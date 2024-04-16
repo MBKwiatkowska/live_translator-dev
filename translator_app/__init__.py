@@ -13,6 +13,7 @@ INPUT_DEVICE_INDEX = int(os.getenv("INPUT_DEVICE_INDEX", default="1"))
 AUDIO_MODEL = os.getenv("AUDIO_MODEL", default="openai")
 SCALEPOINT_BEARER = os.getenv("SCALEPOINT_BEARER")
 SCALEPOINT_ENDPOINT = os.getenv("SCALEPOINT_ENDPOINT")
+TRANSLATION_MODEL = "gpt-3.5-turbo"
 google_speech_client = None
 google_speech_config = None
 google_speech_project_id = None
@@ -103,7 +104,9 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
     level=logging.INFO,
 )
-
+logging.info(f"AUDIO_MODEL: {AUDIO_MODEL}")
+logging.info(f"TRANSLATION_SYSTEM_MESSAGE: {TRANSLATION_SYSTEM_MESSAGE}")
+logging.info(f"translation model: {TRANSLATION_MODEL}")
 #
 ROOT_PATH = "audios"
 os.makedirs(ROOT_PATH, exist_ok=True)
