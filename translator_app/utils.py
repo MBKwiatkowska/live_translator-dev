@@ -229,7 +229,7 @@ def translate(
 
             ################## translate with openai
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=TRANSLATION_MODEL,
                 messages=prepared_input,
                 temperature=temperature,
                 **kwargs,
