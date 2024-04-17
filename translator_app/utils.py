@@ -104,11 +104,11 @@ def transcript(
                             f"removing {temp_file} - too long in a queue"
                         )
                 else:
-                    while transcription_queue.qsize() > 4:
+                    while transcription_queue.qsize() > 2:
                         temp_file = transcription_queue.get()
                         os.remove(temp_file)
                         logging.info(
-                            f"removing {temp_file} - too long in a queue"
+                            f"removing {temp_file} - too long in transcription queue"
                         )
                     if len(response) > 0:
                         logging.info(f"transcription: {response}")
@@ -135,7 +135,11 @@ def transcript_with_google_cloud_speech(
     response = google_speech_client.recognize(request=request)
     try:
         result = response.results[0].alternatives[0].transcript
+        logging.info(f"Google transcription for {file_name} succeeded.")
     except:
+        logging.info(
+            f"Google transcription for {file_name} failed. Response body: {response}"
+        )
         result = ""
     return result
 
@@ -218,6 +222,11 @@ def translate(
     """
     while True:
         if not translation_queue.empty():
+            while transcription_queue.qsize() > 2:
+                temp_file = translation_queue.get()
+                logging.info(
+                    f"removing {temp_file} - too long in transcription queue"
+                )
             message_to_translate = translation_queue.get()
             prepared_input = [
                 {"role": "system", "content": TRANSLATION_SYSTEM_MESSAGE},
@@ -236,6 +245,11 @@ def translate(
             )
             translation = response.choices[0].message.content
             logging.info(f"translation: {translation}")
+            while printout_queue.qsize() > 2:
+                temp_file = printout_queue.get()
+                logging.info(
+                    f"removing {temp_file} - too long in printout queue"
+                )
             printout_queue.put(translation)
 
 
