@@ -158,7 +158,8 @@ def transcript_with_openai(
             file=audio_data,
             temperature=temperature,
             response_format=response_format,
-            # language='pl',
+            language=INPUT_LANGUAGE,
+            prompt=OPENAI_WHISPER_PROMPT,
             **kwargs,
         )
     return response
