@@ -138,9 +138,9 @@ def transcript_with_google_cloud_speech(
         logging.info(f"Google transcription for {file_name} succeeded.")
     except:
         logging.info(
-            f"Google transcription for {file_name} failed."
-            / +f"Sent request: {request}."
-            / +f"Response body: {response}."
+            f"Google transcription for {file_name} failed. \n"
+            + f"Sent request: {request.config} {request.config_mask} {request.recognizer} {request.uri}.\n"
+            + f"Response body: {response}."
         )
         result = ""
     return result
