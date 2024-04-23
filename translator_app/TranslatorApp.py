@@ -27,6 +27,7 @@ class TranscriptionApp:
         self.root.configure(bg=backgroundColor)
 
         screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
         app_height = 200
 
         self.original_logo_image = Image.open(
@@ -35,11 +36,12 @@ class TranscriptionApp:
         self.original_clock_image = Image.open(
             os.path.join(os.path.dirname(__file__), "images", "clock.png")
         )
-
+        position_x = int((screen_width / 2) - (screen_width / 2))
+        position_y = int(screen_height - app_height)
         # Set window attributes
-        self.root.attributes("-topmost", True)
-        self.root.attributes("-alpha", 0.9)
-        self.root.geometry(f"{screen_width}x{app_height}")
+        self.root.attributes("-topmost", True)# on top
+        self.root.attributes("-alpha", 0.9)# window transparency
+        self.root.geometry(f"{screen_width}x{app_height}+{position_x}+{position_y}")
 
         # Create frames for layout with the specified width ratios
         left_frame = tk.Frame(
