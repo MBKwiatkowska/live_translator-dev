@@ -74,6 +74,10 @@ def transcript(
                         temperature=temperature,
                         response_format=response_format,
                     )
+                elif AUDIO_MODEL == "elevenlabs":
+                    response = transcript_with_elevenlabs(
+                        file_name=file_name,
+                    )
                 elif AUDIO_MODEL == "scalepoint":
                     response = transcript_with_scalepoint(
                         file_name=file_name,
@@ -144,6 +148,21 @@ def transcript_with_google_cloud_speech(
         )
         result = ""
     return result
+
+
+def transcript_with_elevenlabs(
+    file_name: str,
+    **kwargs,
+):
+    with open(file_name, "rb") as audio_data:
+        response = elevenlabs_client.speech_to_text.convert(
+            file=audio_data,
+            model_id="scribe_v1",
+            tag_audio_events=False,
+            language_code=INPUT_LANGUAGE,
+            diarize=False,
+        )
+    return response.text
 
 
 def transcript_with_openai(

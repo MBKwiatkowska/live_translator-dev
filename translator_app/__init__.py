@@ -4,15 +4,19 @@ import pyaudio
 import queue
 import logging
 from dotenv import load_dotenv
+from elevenlabs.client import ElevenLabs
 from openai import OpenAI
 
 load_dotenv()
 client = OpenAI()
-
+elevenlabs_client = ElevenLabs(
+    api_key=os.getenv("ELEVENLABS_API_KEY"),
+)
 INPUT_DEVICE_INDEX = int(os.getenv("INPUT_DEVICE_INDEX", default="1"))
 AUDIO_MODEL = os.getenv("AUDIO_MODEL", default="openai")
 SCALEPOINT_BEARER = os.getenv("SCALEPOINT_BEARER")
 SCALEPOINT_ENDPOINT = os.getenv("SCALEPOINT_ENDPOINT")
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 TRANSLATION_MODEL = "gpt-4o"  ## "gpt-4o" ##"gpt-3.5-turbo"
 INPUT_LANGUAGE = "pl"
 google_speech_client = None
@@ -20,7 +24,12 @@ google_speech_config = None
 google_speech_project_id = None
 model = None
 processor = None
-if AUDIO_MODEL in ["openai", "scalepoint", "scalepoint_translation"]:
+if AUDIO_MODEL in [
+    "openai",
+    "scalepoint",
+    "scalepoint_translation",
+    "elevenlabs",
+]:
     None
 elif AUDIO_MODEL == "google-cloud-speech":
     import json
