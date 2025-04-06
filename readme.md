@@ -17,6 +17,7 @@ pip install -r requirements.txt
    - openai/whisper-tiny.en - openai whisper from hugging_face
    - faster-whisper - small model from faster-whisper library
    - google-cloud-speech - speech recognition model from google
+   - elevenlabs - speech recognition model from elevenlabs
 
 python main.py
 runs entire app translator_app - models to transcribe and translate
