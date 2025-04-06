@@ -30,7 +30,9 @@ if AUDIO_MODEL in [
     "scalepoint_translation",
     "elevenlabs",
 ]:
-    None
+    # Don't load any models for API-based services
+    processor = None
+    model = None
 elif AUDIO_MODEL == "google-cloud-speech":
     import json
 
@@ -59,6 +61,17 @@ elif AUDIO_MODEL == "faster-whisper":
 
     model_size = "small"
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
+elif AUDIO_MODEL == "huggingface-whisper":
+    from transformers import WhisperProcessor, WhisperForConditionalGeneration
+    from datasets import load_dataset
+    
+    processor = WhisperProcessor.from_pretrained(AUDIO_MODEL)
+    model = WhisperForConditionalGeneration.from_pretrained(AUDIO_MODEL)
+    ds = load_dataset(
+        "hf-internal-testing/librispeech_asr_dummy",
+        "clean",
+        split="validation",
+    )
 else:
     from transformers import WhisperProcessor, WhisperForConditionalGeneration
     from datasets import load_dataset
